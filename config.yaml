@@ -1,0 +1,81 @@
+task:
+
+  dataset:
+    trainset:
+      _target_: datas.dataset.DeepfakeDataset
+      dirpath: dataset
+
+      augment:
+        image:
+          flip:
+            _target_: albumentations.HorizontalFlip
+            p: 0.5
+
+          noise:
+            _target_: albumentations.GaussNoise
+            p: 0.5
+
+        video:
+          dropout:
+            _target_: datas.augment.TemporalDropout
+            min_frames: 5
+            max_frames: 10
+            p: 0.5
+
+          repeat:
+            _target_: datas.augment.TemporalRepeat
+            min_frames: 5
+            max_frames: 10
+            p: 0.5
+
+    valset:
+      _target_: datas.dataset.DeepfakeDataset
+      dirpath: dataset
+
+    dataloader:
+      batch_size: 1
+      num_workers: 4
+      pin_memory: true
+
+  model:
+    weight:
+      temporal_weight: 20
+      spatial_weight: 1
+    
+    detection:
+      inplace_relu: true
+      num_block_temp_kernel: [[3], [4], [6], [3]]
+      num_groups: 1
+      spatial_dilations: [[1], [1], [1], [1]]
+      spatial_strides: [[1], [2], [2], [2]]
+      stride_1x1: false
+      width_per_group: 64
+
+  optimizer:
+    method: sgd
+    base_lr: 0.05
+    dampening: 0.0
+    momentum: 0.9
+    nesterov: false
+    weight_decay: 0.0001
+    max_epochs: &max_epochs 1000
+    warmup_epochs: 10
+    warmup_start_lr: 0.005
+
+
+callbacks:
+  lr:
+    _target_: pytorch_lightning.callbacks.LearningRateMonitor
+
+  cp:
+    _target_: pytorch_lightning.callbacks.ModelCheckpoint
+    filename: "{epoch}-{val_loss:.3f}"
+    monitor: val_loss
+    save_last: true
+    save_top_k: 5
+
+trainer:
+  devices: 1
+  strategy: ddp_find_unused_parameters_false
+  accelerator: gpu
+  max_epochs: *max_epochs

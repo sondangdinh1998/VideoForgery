@@ -1,0 +1,7 @@
+torch
+torchvision
+pytorch-lightning
+hydra-core
+cv2
+albumentations
+tensorboard
